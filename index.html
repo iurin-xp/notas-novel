@@ -1,0 +1,1275 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="claro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Notas da Novel</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root{
+    --ui-font:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;
+    --serif:'Iowan Old Style','Palatino Linotype',Palatino,Georgia,'Times New Roman',serif;
+    --radius:8px;
+  }
+  [data-theme="claro"]{
+    --bg:#fbf9f6; --fg:#26231f; --muted:#8b8479; --panel:#ffffff;
+    --border:rgba(0,0,0,.08); --hover:rgba(0,0,0,.04);
+    --accent:#b0603a; --accent-rgb:176,96,58;
+    --star-empty:#d6cec2; --bg-trans:rgba(251,249,246,.86);
+    --shadow:0 10px 30px -12px rgba(60,40,20,.15);
+    --danger:#c0392b;
+  }
+  [data-theme="sepia"]{
+    --bg:#f2e8d5; --fg:#3b3025; --muted:#8a7a63; --panel:#f8f1e2;
+    --border:rgba(90,70,40,.14); --hover:rgba(120,90,50,.08);
+    --accent:#a35f2b; --accent-rgb:163,95,43;
+    --star-empty:#c9b99e; --bg-trans:rgba(242,232,213,.88);
+    --shadow:0 10px 30px -12px rgba(80,50,20,.18);
+    --danger:#b13727;
+  }
+  [data-theme="escuro"]{
+    --bg:#16181c; --fg:#d9d6cf; --muted:#7f858e; --panel:#1c1f24;
+    --border:rgba(255,255,255,.09); --hover:rgba(255,255,255,.06);
+    --accent:#d99a6c; --accent-rgb:217,154,108;
+    --star-empty:#3a3d42; --bg-trans:rgba(22,24,28,.86);
+    --shadow:0 10px 30px -12px rgba(0,0,0,.5);
+    --danger:#ff8489;
+  }
+  [data-theme="preto"]{
+    --bg:#000000; --fg:#b9b9b9; --muted:#6b6b6b; --panel:#0c0c0c;
+    --border:rgba(255,255,255,.08); --hover:rgba(255,255,255,.06);
+    --accent:#c98a5c; --accent-rgb:201,138,92;
+    --star-empty:#2a2a2a; --bg-trans:rgba(0,0,0,.85);
+    --shadow:0 10px 30px -12px rgba(0,0,0,.7);
+    --danger:#ff8489;
+  }
+  *,*::before,*::after{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; }
+  body{
+    background:var(--bg); color:var(--fg);
+    font-family:var(--ui-font); line-height:1.5; min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+    transition:background .25s ease, color .25s ease;
+  }
+  button{ font-family:inherit; font-size:inherit; cursor:pointer; border:none; background:none; color:inherit; padding:0; }
+  input,textarea,select{ font-family:inherit; font-size:inherit; color:inherit; }
+  ::selection{ background:rgba(var(--accent-rgb),.22); }
+
+  .btn{
+    display:inline-flex; align-items:center; justify-content:center; gap:8px;
+    padding:9px 16px; border-radius:var(--radius);
+    font-size:13px; font-weight:500;
+    border:1px solid var(--border); background:transparent; color:var(--fg);
+    transition:background .15s, border-color .15s, opacity .15s, transform .1s;
+    white-space:nowrap;
+  }
+  .btn:hover{ background:var(--hover); }
+  .btn:active{ transform:translateY(1px); }
+  .btn:disabled{ opacity:.45; cursor:default; }
+  .btn.primary{
+    background:var(--accent); color:#fff; border-color:transparent;
+    padding:11px 22px; font-weight:600;
+    box-shadow:0 4px 12px -6px rgba(var(--accent-rgb),.5);
+  }
+  .btn.primary:hover{ filter:brightness(1.06); }
+  [data-theme="escuro"] .btn.primary,
+  [data-theme="preto"] .btn.primary{ color:#111; }
+  .btn.ghost{ border-color:transparent; }
+  .btn.danger{ color:var(--danger); border-color:rgba(var(--accent-rgb),.25); }
+  .btn.danger:hover{ background:rgba(var(--accent-rgb),.06); border-color:var(--danger); }
+  .btn.small{ padding:6px 11px; font-size:12px; border-radius:6px; }
+  .btn.full{ width:100%; }
+
+  .nav{
+    position:sticky; top:0; z-index:50;
+    background:var(--bg-trans);
+    -webkit-backdrop-filter:blur(14px); backdrop-filter:blur(14px);
+    border-bottom:1px solid var(--border);
+  }
+  .nav-inner{
+    max-width:900px; margin:0 auto; padding:0 24px;
+    height:60px; display:flex; align-items:center; justify-content:space-between; gap:16px;
+  }
+  .brand{ display:flex; align-items:center; gap:10px; min-width:0; }
+  .brand-mark{ color:var(--accent); font-size:18px; line-height:1; }
+  .brand-text{
+    font-family:var(--serif); font-size:16px; font-weight:600;
+    letter-spacing:-.01em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .nav-actions{ display:flex; align-items:center; gap:4px; flex:0 0 auto; }
+  .nav-btn{
+    padding:8px 12px; border-radius:var(--radius);
+    font-size:12.5px; font-weight:500; color:var(--muted);
+    display:inline-flex; align-items:center; gap:6px;
+    transition:background .15s, color .15s;
+  }
+  .nav-btn:hover{ background:var(--hover); color:var(--fg); }
+  .nav-btn .icon{ font-size:15px; }
+
+  .hero{ max-width:900px; margin:0 auto; padding:88px 24px 64px; text-align:center; }
+  .hero-kicker{
+    font-size:11.5px; font-weight:600;
+    text-transform:uppercase; letter-spacing:.22em;
+    color:var(--muted); margin-bottom:28px;
+  }
+  .hero-kicker span{ color:var(--accent); }
+  .hero-title{
+    font-family:var(--serif); font-size:clamp(38px,7vw,68px);
+    font-weight:500; line-height:1.06; letter-spacing:-.025em;
+    margin:0 0 20px;
+  }
+  .hero-sub{
+    font-family:var(--serif); font-size:19px; font-style:italic;
+    line-height:1.55; color:var(--muted);
+    max-width:520px; margin:0 auto;
+  }
+  .hero-stats{
+    display:flex; justify-content:center; gap:56px;
+    margin-top:56px; padding-top:36px;
+    border-top:1px solid var(--border); flex-wrap:wrap;
+  }
+  .hero-stats > div{ display:flex; flex-direction:column; align-items:center; gap:6px; }
+  .hero-stats strong{
+    font-family:var(--serif); font-size:34px; font-weight:500;
+    color:var(--accent); line-height:1; font-variant-numeric:tabular-nums;
+  }
+  .hero-stats span{
+    font-size:10.5px; color:var(--muted);
+    text-transform:uppercase; letter-spacing:.18em; font-weight:600;
+  }
+
+  .chapters{ max-width:900px; margin:0 auto; padding:0 24px 100px; }
+  .section-head{
+    display:flex; align-items:baseline; justify-content:space-between;
+    gap:16px; padding-bottom:22px; margin-bottom:8px;
+    border-bottom:1px solid var(--border);
+  }
+  .section-head h2{
+    font-family:var(--serif); font-size:22px; font-weight:600;
+    letter-spacing:-.01em; margin:0;
+  }
+  .sort-wrap{
+    display:flex; align-items:center; gap:8px;
+    font-size:12px; color:var(--muted);
+  }
+  .sort-wrap select{
+    background:transparent; color:var(--fg);
+    border:1px solid var(--border); border-radius:6px;
+    padding:6px 28px 6px 10px; font-size:12px;
+    cursor:pointer; outline:none; appearance:none;
+    background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);
+    background-position:calc(100% - 14px) 50%,calc(100% - 9px) 50%;
+    background-size:5px 5px,5px 5px; background-repeat:no-repeat;
+  }
+  .sort-wrap select:focus{ border-color:var(--accent); }
+
+  .chapter-list{ display:flex; flex-direction:column; }
+  .chapter-item{
+    display:grid; grid-template-columns:96px 1fr 130px;
+    gap:28px; align-items:center; padding:28px 12px;
+    border-bottom:1px solid var(--border); cursor:pointer;
+    transition:padding-left .22s ease, background .15s ease;
+  }
+  .chapter-item:hover{ padding-left:24px; background:var(--hover); }
+  .chapter-num{
+    font-family:var(--serif); font-size:50px; font-weight:500;
+    line-height:1; color:var(--accent);
+    font-variant-numeric:tabular-nums; opacity:.9; letter-spacing:-.02em;
+  }
+  .chapter-info{ min-width:0; }
+  .chapter-title{
+    font-family:var(--serif); font-size:21px; font-weight:600;
+    line-height:1.25; margin:0 0 8px; letter-spacing:-.01em;
+  }
+  .chapter-desc{
+    font-size:13.5px; color:var(--muted); line-height:1.55; margin:0;
+    display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;
+    overflow:hidden;
+  }
+  .chapter-stats{ text-align:right; }
+  .chapter-score{
+    font-family:var(--serif); font-size:30px; font-weight:500;
+    color:var(--accent); line-height:1;
+    font-variant-numeric:tabular-nums; letter-spacing:-.01em;
+  }
+  .chapter-score.empty{ color:var(--star-empty); font-size:24px; }
+  .chapter-votes{
+    font-size:10.5px; color:var(--muted); margin-top:8px;
+    text-transform:uppercase; letter-spacing:.14em; font-weight:600;
+  }
+  .chapter-mine{
+    display:inline-block; margin-top:8px;
+    font-size:10.5px; color:var(--accent); font-weight:600;
+    text-transform:uppercase; letter-spacing:.12em;
+    padding:2px 8px;
+    border:1px solid rgba(var(--accent-rgb),.35); border-radius:20px;
+  }
+
+  .empty-state{
+    text-align:center; padding:72px 20px;
+    color:var(--muted); font-family:var(--serif);
+    font-size:16px; font-style:italic; line-height:1.7;
+  }
+
+  .detail-overlay{
+    position:fixed; inset:0; z-index:90;
+    background:var(--bg); overflow-y:auto; display:none;
+  }
+  .detail-overlay.open{ display:block; animation:fadeIn .25s ease; }
+  @keyframes fadeIn{ from{opacity:0} to{opacity:1} }
+  .detail-wrap{ max-width:760px; margin:0 auto; padding:28px 24px 100px; }
+  .detail-back{
+    display:inline-flex; align-items:center; gap:6px;
+    padding:8px 0; color:var(--muted);
+    font-size:13px; font-weight:500; transition:color .15s;
+  }
+  .detail-back:hover{ color:var(--fg); }
+  .detail-back::before{ content:'←'; font-size:15px; }
+  .detail-header{ text-align:center; padding:52px 0 44px; }
+  .detail-kicker{
+    font-size:11px; font-weight:600;
+    text-transform:uppercase; letter-spacing:.26em;
+    color:var(--accent); margin-bottom:22px;
+  }
+  .detail-title{
+    font-family:var(--serif); font-size:clamp(34px,5.5vw,58px);
+    font-weight:500; line-height:1.08; letter-spacing:-.02em;
+    margin:0 0 22px;
+  }
+  .detail-cover{
+    max-width:220px; margin:0 auto 34px;
+    border-radius:var(--radius); overflow:hidden;
+    box-shadow:var(--shadow);
+    aspect-ratio:2/3; background:var(--panel);
+  }
+  .detail-cover img{ width:100%; height:100%; object-fit:cover; }
+  .detail-desc{
+    font-family:var(--serif); font-size:19px; font-style:italic;
+    line-height:1.6; color:var(--muted); max-width:520px; margin:0 auto;
+  }
+  .detail-section{ padding:44px 0; border-top:1px solid var(--border); }
+  .detail-section.center{ text-align:center; }
+  .section-title{
+    font-size:11px; text-transform:uppercase; letter-spacing:.22em;
+    color:var(--muted); font-weight:600; margin-bottom:22px;
+  }
+  .big-score{
+    font-family:var(--serif); font-size:76px; font-weight:400;
+    color:var(--accent); line-height:1;
+    font-variant-numeric:tabular-nums; letter-spacing:-.02em;
+  }
+  .big-score small{ font-size:22px; color:var(--muted); font-weight:400; letter-spacing:0; }
+  .big-stars{
+    font-size:18px; color:var(--accent);
+    letter-spacing:5px; margin:16px 0 10px;
+  }
+  .big-count{
+    font-size:12px; color:var(--muted);
+    text-transform:uppercase; letter-spacing:.14em; font-weight:600;
+  }
+  .star-input{
+    display:flex; justify-content:center; gap:4px;
+    margin-bottom:16px; flex-wrap:wrap;
+  }
+  .star-input button{
+    font-size:32px; line-height:1; padding:4px 3px;
+    color:var(--star-empty);
+    transition:color .12s ease, transform .12s ease;
+  }
+  .star-input button:hover{ transform:scale(1.15); }
+  .star-input button.on{ color:var(--accent); }
+  .rating-hint{ font-size:12.5px; color:var(--muted); line-height:1.6; }
+  .rating-hint strong{ color:var(--accent); }
+  .dist{
+    max-width:340px; margin:0 auto;
+    display:flex; flex-direction:column; gap:8px;
+  }
+  .dist-row{ display:flex; align-items:center; gap:12px; font-size:12px; }
+  .dist-label{
+    width:22px; color:var(--muted); text-align:right;
+    font-variant-numeric:tabular-nums; font-weight:500;
+  }
+  .dist-bar{
+    flex:1; height:5px; background:var(--hover);
+    border-radius:3px; overflow:hidden;
+  }
+  .dist-fill{
+    height:100%; background:var(--accent); border-radius:3px;
+    transition:width .5s cubic-bezier(.4,0,.2,1); opacity:.85;
+  }
+  .dist-count{
+    width:26px; color:var(--muted);
+    font-variant-numeric:tabular-nums; font-weight:500;
+  }
+
+  .admin-overlay{
+    position:fixed; inset:0; z-index:100;
+    background:var(--bg); display:none;
+  }
+  .admin-overlay.open{ display:block; animation:fadeIn .2s ease; }
+
+  .login-screen{
+    display:flex; align-items:center; justify-content:center;
+    width:100%; height:100%; padding:24px;
+  }
+  .login-card{
+    background:var(--panel); border:1px solid var(--border);
+    border-radius:14px; padding:44px 36px 32px;
+    width:100%; max-width:400px; box-shadow:var(--shadow);
+  }
+  .login-icon{ font-size:30px; text-align:center; margin-bottom:20px; opacity:.8; }
+  .login-card h2{
+    font-family:var(--serif); font-size:22px; font-weight:600;
+    text-align:center; margin:0 0 8px; letter-spacing:-.01em;
+  }
+  .login-card .hint{
+    text-align:center; font-size:13px; color:var(--muted);
+    line-height:1.55; margin:0 0 26px;
+  }
+  .login-card input{
+    width:100%; background:transparent;
+    border:1px solid var(--border); border-radius:var(--radius);
+    padding:12px 14px; font-size:14px; margin-bottom:10px;
+    outline:none; transition:border-color .15s;
+  }
+  .login-card input:focus{ border-color:var(--accent); }
+  .login-error{
+    color:var(--danger); font-size:12.5px; font-weight:500;
+    min-height:18px; margin-bottom:8px; text-align:center;
+  }
+  .login-card .btn.full + .btn.full{ margin-top:8px; }
+
+  .admin{ display:flex; width:100%; height:100%; }
+  .admin-sidebar{
+    width:220px; flex:0 0 auto; background:var(--panel);
+    border-right:1px solid var(--border);
+    padding:28px 14px 16px;
+    display:flex; flex-direction:column;
+  }
+  .admin-brand{
+    display:flex; align-items:center; gap:9px;
+    font-family:var(--serif); font-size:16px; font-weight:600;
+    padding:0 12px 24px; letter-spacing:-.01em;
+  }
+  .admin-brand .brand-mark{ color:var(--accent); font-size:16px; }
+  .admin-nav{ display:flex; flex-direction:column; gap:2px; flex:1; }
+  .admin-nav button{
+    text-align:left; padding:10px 12px; border-radius:6px;
+    font-size:13px; font-weight:500; color:var(--muted);
+    transition:background .15s, color .15s;
+  }
+  .admin-nav button:hover{ background:var(--hover); color:var(--fg); }
+  .admin-nav button.active{
+    background:rgba(var(--accent-rgb),.1);
+    color:var(--accent); font-weight:600;
+  }
+  .admin-sidebar-foot{
+    display:flex; flex-direction:column; gap:2px;
+    padding-top:14px; border-top:1px solid var(--border);
+  }
+  .admin-sidebar-foot .btn{
+    justify-content:flex-start; padding:8px 12px;
+    font-size:12.5px; color:var(--muted);
+  }
+  .admin-sidebar-foot .btn:hover{ color:var(--fg); }
+  .admin-main{ flex:1; overflow-y:auto; padding:52px 56px; }
+  .admin-main h1{
+    font-family:var(--serif); font-size:26px; font-weight:500;
+    margin:0 0 26px; letter-spacing:-.01em;
+  }
+  .admin-tab-head{
+    display:flex; align-items:center; justify-content:space-between;
+    margin-bottom:26px; gap:16px;
+  }
+  .admin-tab-head h1{ margin-bottom:0; }
+
+  .admin-list{ display:flex; flex-direction:column; gap:2px; }
+  .admin-row{
+    display:flex; align-items:center; gap:16px;
+    padding:16px 12px; border-radius:6px;
+    border-bottom:1px solid var(--border);
+    transition:background .15s;
+  }
+  .admin-row:hover{ background:var(--hover); }
+  .admin-row-num{
+    font-family:var(--serif); font-size:22px; font-weight:500;
+    color:var(--accent); min-width:36px;
+    font-variant-numeric:tabular-nums; opacity:.9;
+  }
+  .admin-row-main{ flex:1; min-width:0; }
+  .admin-row-title{
+    font-family:var(--serif); font-size:14.5px; font-weight:600;
+    margin-bottom:3px;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .admin-row-meta{
+    font-size:11.5px; color:var(--muted);
+    font-variant-numeric:tabular-nums; letter-spacing:.02em;
+  }
+  .admin-row-actions{ display:flex; gap:6px; flex:0 0 auto; }
+  .tag{
+    display:inline-block; font-size:9.5px; font-weight:600;
+    text-transform:uppercase; letter-spacing:.1em;
+    background:rgba(var(--accent-rgb),.13); color:var(--accent);
+    padding:2px 7px; border-radius:4px;
+    margin-left:8px; vertical-align:middle;
+  }
+  .admin-empty{
+    text-align:center; padding:56px 20px;
+    color:var(--muted); font-family:var(--serif);
+    font-size:15px; font-style:italic; line-height:1.7;
+  }
+
+  .settings-form{
+    display:flex; flex-direction:column; gap:18px; max-width:480px;
+  }
+  .settings-form label{
+    display:flex; flex-direction:column; gap:8px;
+    font-size:12px; font-weight:600; color:var(--muted);
+    text-transform:uppercase; letter-spacing:.08em;
+  }
+  .settings-form input,
+  .settings-form textarea{
+    background:transparent; border:1px solid var(--border);
+    border-radius:var(--radius); padding:11px 14px;
+    font-size:14px; color:var(--fg); outline:none; width:100%;
+    text-transform:none; letter-spacing:normal; font-weight:400;
+    transition:border-color .15s;
+  }
+  .settings-form input:focus,
+  .settings-form textarea:focus{ border-color:var(--accent); }
+  .settings-form .btn{ align-self:flex-start; margin-top:6px; }
+
+  .editor-modal{
+    position:fixed; inset:0; z-index:200;
+    background:rgba(0,0,0,.5);
+    -webkit-backdrop-filter:blur(4px); backdrop-filter:blur(4px);
+    display:flex; align-items:center; justify-content:center;
+    padding:24px; overflow-y:auto;
+  }
+  .editor-modal[hidden]{ display:none; }
+  .editor-card{
+    background:var(--panel); border:1px solid var(--border);
+    border-radius:14px; padding:36px;
+    width:100%; max-width:520px;
+    box-shadow:0 40px 100px -40px rgba(0,0,0,.6);
+    margin:auto;
+  }
+  .editor-card h2{
+    font-family:var(--serif); font-size:22px; font-weight:500;
+    margin:0 0 26px; letter-spacing:-.01em;
+  }
+  #chapterForm{ display:flex; flex-direction:column; gap:18px; }
+  #chapterForm label{
+    display:flex; flex-direction:column; gap:8px;
+    font-size:12px; font-weight:600; color:var(--muted);
+    text-transform:uppercase; letter-spacing:.08em;
+  }
+  #chapterForm label.checkbox{
+    flex-direction:row; align-items:center; gap:10px;
+    cursor:pointer; text-transform:none; letter-spacing:normal;
+    font-size:13.5px; font-weight:500; color:var(--fg);
+  }
+  #chapterForm input,
+  #chapterForm textarea{
+    background:transparent; border:1px solid var(--border);
+    border-radius:var(--radius); padding:11px 14px;
+    font-size:14px; color:var(--fg); outline:none; width:100%;
+    text-transform:none; letter-spacing:normal; font-weight:400;
+    resize:vertical; transition:border-color .15s;
+  }
+  #chapterForm input:focus,
+  #chapterForm textarea:focus{ border-color:var(--accent); }
+  #chapterForm label.checkbox input{
+    width:auto; margin:0; cursor:pointer; accent-color:var(--accent);
+  }
+  .form-actions{
+    display:flex; gap:8px; justify-content:flex-end;
+    margin-top:8px; padding-top:20px;
+    border-top:1px solid var(--border);
+  }
+
+  .toast{
+    position:fixed; left:50%; bottom:32px; z-index:300;
+    transform:translate(-50%, 16px); opacity:0; pointer-events:none;
+    background:var(--fg); color:var(--bg);
+    font-size:13px; font-weight:500;
+    padding:11px 20px; border-radius:8px;
+    box-shadow:var(--shadow);
+    transition:opacity .22s ease, transform .22s ease;
+    max-width:82vw; text-align:center;
+  }
+  .toast.show{ opacity:1; transform:translate(-50%,0); }
+  .toast.error{ background:var(--danger); color:#fff; }
+
+  .loading{
+    display:flex; align-items:center; justify-content:center;
+    padding:80px 20px; color:var(--muted);
+    font-family:var(--serif); font-style:italic; font-size:15px;
+  }
+  .spinner{
+    width:14px; height:14px;
+    border:1.5px solid var(--border); border-top-color:var(--accent);
+    border-radius:50%; animation:spin .8s linear infinite; margin-right:10px;
+  }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+
+  @media(max-width:640px){
+    .nav-inner{ padding:0 18px; height:56px; }
+    .brand-text{ font-size:15px; }
+    .hero{ padding:56px 20px 44px; }
+    .hero-stats{ gap:36px; margin-top:40px; padding-top:28px; }
+    .hero-stats strong{ font-size:26px; }
+    .chapters{ padding:0 18px 72px; }
+    .chapter-item{
+      grid-template-columns:48px 1fr auto;
+      gap:16px; padding:22px 8px;
+    }
+    .chapter-item:hover{ padding-left:12px; }
+    .chapter-num{ font-size:32px; }
+    .chapter-title{ font-size:17px; }
+    .chapter-desc{ font-size:12.5px; }
+    .chapter-score{ font-size:22px; }
+    .chapter-votes{ font-size:9.5px; letter-spacing:.1em; margin-top:6px; }
+    .chapter-mine{ font-size:9.5px; padding:1px 6px; margin-top:6px; }
+    .detail-wrap{ padding:20px 18px 80px; }
+    .detail-header{ padding:32px 0 28px; }
+    .detail-section{ padding:32px 0; }
+    .big-score{ font-size:60px; }
+    .star-input button{ font-size:26px; padding:3px 2px; }
+    .admin{ flex-direction:column; }
+    .admin-sidebar{
+      width:100%; flex-direction:row; align-items:center;
+      gap:6px; padding:12px 14px;
+      border-right:none; border-bottom:1px solid var(--border);
+      overflow-x:auto;
+    }
+    .admin-brand{ padding:0 12px 0 0; font-size:15px; flex:0 0 auto; }
+    .admin-nav{ flex-direction:row; flex:1 1 auto; gap:2px; }
+    .admin-nav button{ white-space:nowrap; padding:8px 12px; font-size:12px; }
+    .admin-sidebar-foot{
+      flex-direction:row; padding-top:0; border-top:none; flex:0 0 auto;
+    }
+    .admin-sidebar-foot .btn{ padding:7px 10px; font-size:11.5px; }
+    .admin-main{ padding:28px 18px; }
+    .admin-main h1{ font-size:22px; }
+    .admin-tab-head{ flex-wrap:wrap; }
+    .admin-row{ padding:14px 8px; gap:12px; }
+    .admin-row-num{ font-size:18px; min-width:28px; }
+    .editor-card{ padding:26px 22px; }
+  }
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <div class="brand">
+      <span class="brand-mark">◈</span>
+      <span class="brand-text" id="brandTitle">Notas da Novel</span>
+    </div>
+    <div class="nav-actions">
+      <button class="nav-btn" id="themeBtn" title="Trocar tema">
+        <span class="icon">◐</span>
+      </button>
+      <button class="nav-btn" id="adminBtn">Admin</button>
+    </div>
+  </div>
+</nav>
+
+<header class="hero">
+  <p class="hero-kicker">Novel por <span id="heroAuthor">—</span></p>
+  <h1 class="hero-title" id="heroTitle">Notas da Novel</h1>
+  <p class="hero-sub" id="heroSub"></p>
+  <div class="hero-stats">
+    <div><strong id="statChapters">0</strong><span>capítulos</span></div>
+    <div><strong id="statRatings">0</strong><span>avaliações</span></div>
+    <div><strong id="statAvg">—</strong><span>nota média</span></div>
+  </div>
+</header>
+
+<main class="chapters">
+  <div class="section-head">
+    <h2>Capítulos</h2>
+    <div class="sort-wrap">
+      <label for="sortSelect">Ordenar por</label>
+      <select id="sortSelect">
+        <option value="number">Número</option>
+        <option value="rating">Nota</option>
+      </select>
+    </div>
+  </div>
+  <div class="chapter-list" id="chapterList">
+    <div class="loading"><span class="spinner"></span>Carregando capítulos…</div>
+  </div>
+</main>
+
+<div class="detail-overlay" id="detailOverlay">
+  <div class="detail-wrap">
+    <button class="detail-back" id="detailClose">voltar</button>
+    <div id="detailContent"></div>
+  </div>
+</div>
+
+<div class="admin-overlay" id="adminOverlay">
+
+  <div class="login-screen" id="loginScreen">
+    <form class="login-card" id="loginForm">
+      <div class="login-icon">◈</div>
+      <h2>Área do Administrador</h2>
+      <p class="hint">Entre com a conta admin criada no Supabase.</p>
+      <input type="email" id="loginEmail" placeholder="E-mail" autocomplete="username" required>
+      <input type="password" id="loginPassword" placeholder="Senha" autocomplete="current-password" required>
+      <div class="login-error" id="loginError"></div>
+      <button type="submit" class="btn primary full" id="loginSubmit">Entrar</button>
+      <button type="button" class="btn ghost full" id="loginClose">Voltar ao site</button>
+    </form>
+  </div>
+
+  <div class="admin" id="adminPanel" style="display:none">
+    <aside class="admin-sidebar">
+      <div class="admin-brand"><span class="brand-mark">◈</span> Admin</div>
+      <nav class="admin-nav">
+        <button data-tab="chapters" class="active">Capítulos</button>
+        <button data-tab="settings">Configurações</button>
+      </nav>
+      <div class="admin-sidebar-foot">
+        <button class="btn ghost" id="adminLogout">Sair da conta</button>
+        <button class="btn ghost" id="adminClose">Fechar painel</button>
+      </div>
+    </aside>
+    <main class="admin-main">
+      <section class="admin-tab" data-tab="chapters">
+        <div class="admin-tab-head">
+          <h1>Capítulos</h1>
+          <button class="btn primary" id="newChapterBtn">+ Novo capítulo</button>
+        </div>
+        <div id="adminChapterList" class="admin-list"></div>
+      </section>
+      <section class="admin-tab" data-tab="settings" hidden>
+        <h1>Configurações</h1>
+        <div class="settings-form">
+          <label>Título do site<input type="text" id="setTitle" maxlength="60"></label>
+          <label>Subtítulo<input type="text" id="setSubtitle" maxlength="200"></label>
+          <label>Autor<input type="text" id="setAuthor" maxlength="60"></label>
+          <button class="btn primary" id="saveSettings">Salvar configurações</button>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+
+<div class="editor-modal" id="editorModal" hidden>
+  <div class="editor-card">
+    <h2 id="editorTitle">Novo capítulo</h2>
+    <form id="chapterForm">
+      <input type="hidden" id="chId">
+      <label>Número<input type="number" id="chNumber" min="1" required></label>
+      <label>Título<input type="text" id="chTitle" required maxlength="80"></label>
+      <label>Descrição<textarea id="chDesc" rows="3" maxlength="300"></textarea></label>
+      <label>Capa (URL opcional)<input type="url" id="chCover" placeholder="https://..."></label>
+      <label class="checkbox"><input type="checkbox" id="chPublished" checked> Publicado (visível no site)</label>
+      <div class="form-actions">
+        <button type="button" class="btn ghost" id="editorCancel">Cancelar</button>
+        <button type="submit" class="btn primary" id="editorSave">Salvar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+'use strict';
+
+/* ==========================================================
+   CONFIGURAÇÃO — EDITE APENAS ESTAS 3 LINHAS
+   ========================================================== */
+const SUPABASE_URL      = 'https://bcivuosqzdpqywvbmsty.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJjaXZ1b3NxemRwcXl3dmJtc3R5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQxMDMxNDIsImV4cCI6MjEwOTY3OTE0Mn0._EA7ctPw-J5w0woSrA9YeohR7gZfwzleQXDenOiR5Tk';
+const ADMIN_EMAIL       = '1uris4ntos4814@gmail.com';
+/* ========================================================== */
+
+const $  = (s,r=document) => r.querySelector(s);
+const $$ = (s,r=document) => [...r.querySelectorAll(s)];
+
+function escapeHtml(s){
+  return String(s==null?'':s).replace(/[&<>"']/g,c=>({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[c]));
+}
+let toastTimer;
+function toast(msg, isError){
+  const el = $('#toast');
+  el.textContent = msg;
+  el.classList.toggle('error', !!isError);
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2600);
+}
+
+// Config check
+if (SUPABASE_URL.includes('COLE_AQUI') || SUPABASE_ANON_KEY.includes('COLE_AQUI') || ADMIN_EMAIL.includes('COLE_AQUI')){
+  document.body.innerHTML = `
+    <div style="display:grid;place-items:center;min-height:100vh;padding:24px;font-family:-apple-system,sans-serif;color:#26231f;background:#fbf9f6;text-align:center;line-height:1.7">
+      <div style="max-width:520px">
+        <div style="font-size:34px;margin-bottom:18px">◈</div>
+        <h1 style="font-family:Georgia,serif;font-weight:500;letter-spacing:-.02em;margin:0 0 16px">Configuração pendente</h1>
+        <p style="color:#8b8479;margin:0 0 22px">Abra o <code style="background:#fff;padding:2px 8px;border-radius:4px;border:1px solid rgba(0,0,0,.08)">index.html</code> e edite as 3 constantes no topo do <code style="background:#fff;padding:2px 8px;border-radius:4px;border:1px solid rgba(0,0,0,.08)">script</code>:</p>
+        <code style="display:inline-block;text-align:left;background:#fff;padding:16px 22px;border-radius:8px;font-size:12.5px;border:1px solid rgba(0,0,0,.08);line-height:1.9;color:#b0603a">
+          SUPABASE_URL<br>SUPABASE_ANON_KEY<br>ADMIN_EMAIL
+        </code>
+      </div>
+    </div>`;
+  return;
+}
+
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+/* ==================== ESTADO ==================== */
+let chapters = [];
+let ratings  = {};   // { chapterId: [{user_id, score}, ...] }
+let settings = {};
+let currentUser = null;
+let isAdmin = false;
+let sortMode = 'number';
+let currentDetailId = null;
+let savedAnonSession = null;
+
+/* ==================== TEMA ==================== */
+const THEMES = ['claro','sepia','escuro','preto'];
+const THEME_NAMES = { claro:'Claro', sepia:'Sépia', escuro:'Escuro', preto:'Preto' };
+const KEY_THEME = 'novel:theme';
+
+function applyTheme(t){
+  document.documentElement.dataset.theme = t;
+  localStorage.setItem(KEY_THEME, t);
+}
+let curTheme = localStorage.getItem(KEY_THEME) || 'claro';
+if (!THEMES.includes(curTheme)) curTheme = 'claro';
+applyTheme(curTheme);
+
+$('#themeBtn').addEventListener('click', () => {
+  const i = THEMES.indexOf(curTheme);
+  curTheme = THEMES[(i+1) % THEMES.length];
+  applyTheme(curTheme);
+  toast('Tema: ' + THEME_NAMES[curTheme]);
+});
+
+/* ==================== AUTH ==================== */
+async function initAuth(){
+  const { data: { session } } = await supabase.auth.getSession();
+  if (session?.user){
+    currentUser = session.user;
+    isAdmin = (currentUser.email || '').toLowerCase() === ADMIN_EMAIL.toLowerCase();
+    return;
+  }
+  const { data, error } = await supabase.auth.signInAnonymously();
+  if (error){ console.error('auth', error); toast('Falha ao autenticar. Recarregue.', true); return; }
+  currentUser = data.user;
+  isAdmin = false;
+}
+
+/* ==================== DADOS ==================== */
+async function loadData(){
+  const [c, r, s] = await Promise.all([
+    supabase.from('chapters').select('*').order('number', { ascending: true }),
+    supabase.from('ratings').select('chapter_id, user_id, score'),
+    supabase.from('settings').select('*').eq('id', 1).maybeSingle()
+  ]);
+  if (c.error) console.error('chapters', c.error);
+  if (r.error) console.error('ratings', r.error);
+  if (s.error) console.error('settings', s.error);
+
+  chapters = c.data || [];
+  ratings = {};
+  (r.data || []).forEach(row => {
+    (ratings[row.chapter_id] = ratings[row.chapter_id] || []).push(row);
+  });
+  settings = s.data || { site_title:'Notas da Novel' };
+}
+
+/* ==================== MÉTRICAS ==================== */
+function statsFor(chapterId){
+  const arr = ratings[chapterId] || [];
+  if (!arr.length) return { count:0, avg:null, my:null, dist:new Array(11).fill(0) };
+  let sum = 0;
+  const dist = new Array(11).fill(0);
+  let my = null;
+  arr.forEach(r => {
+    sum += r.score;
+    if (r.score >= 1 && r.score <= 10) dist[r.score]++;
+    if (currentUser && r.user_id === currentUser.id) my = r.score;
+  });
+  return { count: arr.length, avg: sum / arr.length, my, dist };
+}
+
+/* ==================== SETTINGS ==================== */
+function applySettings(){
+  document.title = settings.site_title || 'Notas da Novel';
+  $('#brandTitle').textContent = settings.site_title || 'Notas da Novel';
+  $('#heroTitle').textContent  = settings.site_title || 'Notas da Novel';
+  $('#heroSub').textContent    = settings.subtitle || '';
+  $('#heroAuthor').textContent = settings.author || '—';
+}
+
+/* ==================== RENDER ==================== */
+function render(){
+  applySettings();
+
+  const pub = chapters.filter(c => c.published).sort((a,b) => a.number - b.number);
+
+  let totalVotes = 0, sum = 0;
+  Object.values(ratings).forEach(arr => arr.forEach(r => { totalVotes++; sum += r.score; }));
+
+  $('#statChapters').textContent = pub.length;
+  $('#statRatings').textContent  = totalVotes;
+  $('#statAvg').textContent      = totalVotes ? (sum / totalVotes).toFixed(1) : '—';
+
+  renderList(pub);
+}
+
+function renderList(list){
+  const container = $('#chapterList');
+  container.innerHTML = '';
+
+  if (!list.length){
+    container.innerHTML = '<div class="empty-state">Nenhum capítulo publicado ainda.<br>Em breve, o autor vai começar a escrever.</div>';
+    return;
+  }
+
+  const sorted = [...list];
+  if (sortMode === 'rating'){
+    sorted.sort((a,b) => {
+      const sa = statsFor(a.id), sb = statsFor(b.id);
+      if (sa.avg === null && sb.avg === null) return a.number - b.number;
+      if (sa.avg === null) return 1;
+      if (sb.avg === null) return -1;
+      return sb.avg - sa.avg;
+    });
+  }
+
+  sorted.forEach(ch => container.appendChild(chapterItem(ch)));
+}
+
+function chapterItem(ch){
+  const st = statsFor(ch.id);
+  const el = document.createElement('article');
+  el.className = 'chapter-item';
+  el.innerHTML = `
+    <div class="chapter-num">${String(ch.number).padStart(2,'0')}</div>
+    <div class="chapter-info">
+      <h3 class="chapter-title">${escapeHtml(ch.title)}</h3>
+      <p class="chapter-desc">${escapeHtml(ch.description || '')}</p>
+    </div>
+    <div class="chapter-stats">
+      <div class="chapter-score${st.avg==null?' empty':''}">${st.avg!=null?st.avg.toFixed(1):'—'}</div>
+      <div class="chapter-votes">${st.count} ${st.count===1?'voto':'votos'}</div>
+      ${st.my ? `<div class="chapter-mine">sua nota ${st.my}</div>` : ''}
+    </div>`;
+  el.addEventListener('click', () => openDetail(ch.id));
+  return el;
+}
+
+/* ==================== DETAIL ==================== */
+function openDetail(id){
+  currentDetailId = id;
+  const ch = chapters.find(c => c.id === id);
+  if (!ch) return;
+  renderDetail(ch);
+  const ov = $('#detailOverlay');
+  ov.classList.add('open');
+  ov.scrollTop = 0;
+  document.body.style.overflow = 'hidden';
+}
+
+function closeDetail(){
+  currentDetailId = null;
+  $('#detailOverlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function starsDisplay(avg){
+  if (avg == null) return '☆☆☆☆☆';
+  const full = Math.round(avg / 2);
+  return '★'.repeat(full) + '☆'.repeat(5 - full);
+}
+
+function renderDetail(ch){
+  const st = statsFor(ch.id);
+  const maxD = Math.max(1, ...st.dist.slice(1));
+
+  const distHtml = Array.from({length:10}, (_,i) => 10-i).map(score => {
+    const pct = (st.dist[score] / maxD) * 100;
+    return `<div class="dist-row">
+      <span class="dist-label">${score}</span>
+      <div class="dist-bar"><div class="dist-fill" style="width:${pct}%"></div></div>
+      <span class="dist-count">${st.dist[score]}</span>
+    </div>`;
+  }).join('');
+
+  const my = st.my || 0;
+  const starsHtml = Array.from({length:10},(_,i)=>i+1).map(s =>
+    `<button type="button" data-score="${s}" class="${s<=my?'on':''}" aria-label="${s}">★</button>`
+  ).join('');
+
+  $('#detailContent').innerHTML = `
+    <div class="detail-header">
+      ${ch.cover ? `<div class="detail-cover"><img src="${escapeHtml(ch.cover)}" alt=""></div>` : ''}
+      <p class="detail-kicker">Capítulo ${String(ch.number).padStart(2,'0')}</p>
+      <h1 class="detail-title">${escapeHtml(ch.title)}</h1>
+      ${ch.description ? `<p class="detail-desc">${escapeHtml(ch.description)}</p>` : ''}
+    </div>
+
+    <div class="detail-section center">
+      <div class="big-score">${st.avg!=null?st.avg.toFixed(1):'—'}<small> / 10</small></div>
+      <div class="big-stars">${starsDisplay(st.avg)}</div>
+      <div class="big-count">${st.count} ${st.count===1?'avaliação':'avaliações'}</div>
+    </div>
+
+    <div class="detail-section center">
+      <p class="section-title">Sua nota</p>
+      <div class="star-input" id="starInput">${starsHtml}</div>
+      <p class="rating-hint" id="ratingHint">${st.my
+        ? `Você deu <strong>${st.my}/10</strong>. Clique em outra estrela para mudar.`
+        : 'Clique em uma estrela para avaliar.'}</p>
+    </div>
+
+    <div class="detail-section">
+      <p class="section-title" style="text-align:center">Distribuição</p>
+      <div class="dist">${distHtml}</div>
+    </div>`;
+
+  const starInput = $('#starInput');
+  starInput.addEventListener('click', e => {
+    const b = e.target.closest('button');
+    if (!b) return;
+    vote(ch.id, parseInt(b.dataset.score, 10));
+  });
+  starInput.addEventListener('mouseover', e => {
+    const b = e.target.closest('button');
+    if (!b) return;
+    const s = parseInt(b.dataset.score, 10);
+    $$('button', starInput).forEach(btn => btn.classList.toggle('on', parseInt(btn.dataset.score,10) <= s));
+  });
+  starInput.addEventListener('mouseleave', () => {
+    const cur = statsFor(ch.id).my || 0;
+    $$('button', starInput).forEach(btn => btn.classList.toggle('on', parseInt(btn.dataset.score,10) <= cur));
+  });
+}
+
+/* ==================== VOTO ==================== */
+async function vote(chapterId, score){
+  if (!currentUser){ toast('Sessão expirada. Recarregue.', true); return; }
+
+  // upsert + onConflict: troca de nota vira UPDATE, não INSERT
+  // a constraint unique(chapter_id, user_id) garante 1 voto por pessoa por capítulo.
+  const { error } = await supabase
+    .from('ratings')
+    .upsert(
+      { chapter_id: chapterId, user_id: currentUser.id, score },
+      { onConflict: 'chapter_id,user_id' }
+    );
+
+  if (error){
+    console.error(error);
+    toast('Erro ao salvar nota: ' + error.message, true);
+    return;
+  }
+
+  toast('Nota salva: ' + score + '/10');
+
+  // Atualização otimista (o realtime já vai reforçar em ~200ms)
+  const arr = ratings[chapterId] = ratings[chapterId] || [];
+  const existing = arr.find(r => r.user_id === currentUser.id);
+  if (existing) existing.score = score;
+  else arr.push({ chapter_id: chapterId, user_id: currentUser.id, score });
+
+  const ch = chapters.find(c => c.id === chapterId);
+  if (ch && currentDetailId === chapterId) renderDetail(ch);
+  render();
+}
+
+/* ==================== REALTIME ==================== */
+let reloadTimer = null;
+function scheduleReload(){
+  clearTimeout(reloadTimer);
+  reloadTimer = setTimeout(async () => {
+    await loadData();
+    render();
+    if (currentDetailId){
+      const ch = chapters.find(c => c.id === currentDetailId);
+      if (ch) renderDetail(ch);
+    }
+  }, 250);
+}
+
+function subscribeRealtime(){
+  supabase.channel('rt-ratings')
+    .on('postgres_changes', { event:'*', schema:'public', table:'ratings' }, scheduleReload)
+    .subscribe();
+  supabase.channel('rt-chapters')
+    .on('postgres_changes', { event:'*', schema:'public', table:'chapters' }, scheduleReload)
+    .subscribe();
+  supabase.channel('rt-settings')
+    .on('postgres_changes', { event:'*', schema:'public', table:'settings' }, async () => {
+      const { data } = await supabase.from('settings').select('*').eq('id',1).maybeSingle();
+      if (data){ settings = data; applySettings(); }
+    })
+    .subscribe();
+}
+
+/* ==================== ADMIN ==================== */
+const adminOverlay = $('#adminOverlay');
+const loginScreen  = $('#loginScreen');
+const adminPanel   = $('#adminPanel');
+
+function openAdmin(){
+  adminOverlay.classList.add('open');
+  if (isAdmin) showAdminPanel();
+  else showLogin();
+}
+function closeAdmin(){ adminOverlay.classList.remove('open'); }
+function showLogin(){
+  loginScreen.style.display = 'flex';
+  adminPanel.style.display = 'none';
+  $('#loginError').textContent = '';
+  setTimeout(() => $('#loginEmail').focus(), 60);
+}
+function showAdminPanel(){
+  loginScreen.style.display = 'none';
+  adminPanel.style.display = 'flex';
+  renderAdminChapters();
+  renderAdminSettings();
+}
+
+$('#adminBtn').addEventListener('click', openAdmin);
+$('#loginClose').addEventListener('click', closeAdmin);
+$('#adminClose').addEventListener('click', closeAdmin);
+
+$('#loginForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const email = $('#loginEmail').value.trim();
+  const pw = $('#loginPassword').value;
+  const btn = $('#loginSubmit');
+  btn.disabled = true; btn.textContent = 'Entrando…';
+  $('#loginError').textContent = '';
+
+  if (email.toLowerCase() !== ADMIN_EMAIL.toLowerCase()){
+    $('#loginError').textContent = 'Este e-mail não é da conta admin.';
+    btn.disabled = false; btn.textContent = 'Entrar';
+    return;
+  }
+
+  // Guarda sessão anônima antes de trocar
+  const { data: { session } } = await supabase.auth.getSession();
+  savedAnonSession = session;
+
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password: pw });
+  btn.disabled = false; btn.textContent = 'Entrar';
+
+  if (error){
+    savedAnonSession = null;
+    $('#loginError').textContent = 'Senha incorreta ou conta não existe.';
+    return;
+  }
+  currentUser = data.user;
+  isAdmin = true;
+  await loadData();
+  render();
+  showAdminPanel();
+  toast('Bem-vindo, admin ✓');
+});
+
+$('#adminLogout').addEventListener('click', async () => {
+  await supabase.auth.signOut();
+  isAdmin = false;
+
+  // Tenta restaurar a sessão anônima original
+  if (savedAnonSession?.access_token && savedAnonSession?.refresh_token){
+    const { data, error } = await supabase.auth.setSession({
+      access_token: savedAnonSession.access_token,
+      refresh_token: savedAnonSession.refresh_token
+    });
+    if (!error && data.user) currentUser = data.user;
+  }
+
+  if (!currentUser || isAdmin){
+    const { data } = await supabase.auth.signInAnonymously();
+    if (data?.user) currentUser = data.user;
+  }
+
+  savedAnonSession = null;
+  await loadData();
+  render();
+  closeAdmin();
+  toast('Saiu da conta admin');
+});
+
+// Tabs
+$$('.admin-nav button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    $$('.admin-nav button').forEach(b => b.classList.toggle('active', b === btn));
+    $$('.admin-tab').forEach(t => t.hidden = t.dataset.tab !== btn.dataset.tab);
+  });
+});
+
+/* ==================== ADMIN · CAPÍTULOS ==================== */
+function renderAdminChapters(){
+  const list = $('#adminChapterList');
+  const sorted = [...chapters].sort((a,b) => a.number - b.number);
+  list.innerHTML = '';
+  if (!sorted.length){
+    list.innerHTML = '<div class="admin-empty">Nenhum capítulo ainda.<br>Clique em “+ Novo capítulo”.</div>';
+    return;
+  }
+  sorted.forEach(ch => {
+    const st = statsFor(ch.id);
+    const row = document.createElement('div');
+    row.className = 'admin-row';
+    row.innerHTML = `
+      <div class="admin-row-num">${String(ch.number).padStart(2,'0')}</div>
+      <div class="admin-row-main">
+        <div class="admin-row-title">
+          ${escapeHtml(ch.title)}
+          ${ch.published ? '' : '<span class="tag">oculto</span>'}
+        </div>
+        <div class="admin-row-meta">${st.count} ${st.count===1?'voto':'votos'} · média ${st.avg!=null?st.avg.toFixed(1):'—'}</div>
+      </div>
+      <div class="admin-row-actions">
+        <button class="btn small" data-edit="${ch.id}">Editar</button>
+        <button class="btn small danger" data-del="${ch.id}">Excluir</button>
+      </div>`;
+    list.appendChild(row);
+  });
+}
+
+$('#adminChapterList').addEventListener('click', async e => {
+  const editBtn = e.target.closest('[data-edit]');
+  if (editBtn){ openEditor(editBtn.dataset.edit); return; }
+
+  const delBtn = e.target.closest('[data-del]');
+  if (delBtn){
+    const ch = chapters.find(c => c.id === delBtn.dataset.del);
+    if (!ch) return;
+    if (!confirm(`Excluir "${ch.title}"? Todas as notas também serão apagadas.`)) return;
+    const { error } = await supabase.from('chapters').delete().eq('id', ch.id);
+    if (error){ toast('Erro: ' + error.message, true); return; }
+    toast('Capítulo excluído');
+  }
+});
+
+$('#newChapterBtn').addEventListener('click', () => openEditor(null));
+
+/* ==================== EDITOR ==================== */
+let editingId = null;
+
+function openEditor(id){
+  editingId = id || null;
+  const ch = id ? chapters.find(c => c.id === id) : null;
+  $('#editorTitle').textContent = ch ? 'Editar capítulo' : 'Novo capítulo';
+  $('#chId').value = ch ? ch.id : '';
+  const nextNum = chapters.length ? Math.max(...chapters.map(c => c.number)) + 1 : 1;
+  $('#chNumber').value = ch ? ch.number : nextNum;
+  $('#chTitle').value = ch ? ch.title : '';
+  $('#chDesc').value = ch ? (ch.description || '') : '';
+  $('#chCover').value = ch ? (ch.cover || '') : '';
+  $('#chPublished').checked = ch ? ch.published !== false : true;
+  $('#editorModal').hidden = false;
+  setTimeout(() => $('#chTitle').focus(), 60);
+}
+
+function closeEditor(){
+  $('#editorModal').hidden = true;
+  editingId = null;
+}
+
+$('#editorCancel').addEventListener('click', closeEditor);
+$('#editorModal').addEventListener('click', e => {
+  if (e.target === $('#editorModal')) closeEditor();
+});
+
+$('#chapterForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const btn = $('#editorSave');
+  btn.disabled = true; btn.textContent = 'Salvando…';
+
+  const data = {
+    number: parseInt($('#chNumber').value, 10),
+    title: $('#chTitle').value.trim(),
+    description: $('#chDesc').value.trim(),
+    cover: $('#chCover').value.trim(),
+    published: $('#chPublished').checked
+  };
+
+  if (!data.number || !data.title){
+    toast('Preencha número e título.', true);
+    btn.disabled = false; btn.textContent = 'Salvar';
+    return;
+  }
+
+  const wasEditing = !!editingId;
+  let error;
+  if (editingId){
+    ({ error } = await supabase.from('chapters').update(data).eq('id', editingId));
+  } else {
+    ({ error } = await supabase.from('chapters').insert(data));
+  }
+
+  btn.disabled = false; btn.textContent = 'Salvar';
+
+  if (error){ toast('Erro: ' + error.message, true); return; }
+
+  closeEditor();
+  toast(wasEditing ? 'Capítulo atualizado ✓' : 'Capítulo criado ✓');
+});
+
+/* ==================== ADMIN · SETTINGS ==================== */
+function renderAdminSettings(){
+  $('#setTitle').value = settings.site_title || '';
+  $('#setSubtitle').value = settings.subtitle || '';
+  $('#setAuthor').value = settings.author || '';
+}
+
+$('#saveSettings').addEventListener('click', async () => {
+  const data = {
+    site_title: $('#setTitle').value.trim() || 'Notas da Novel',
+    subtitle: $('#setSubtitle').value.trim(),
+    author: $('#setAuthor').value.trim()
+  };
+  const { error } = await supabase.from('settings').update(data).eq('id', 1);
+  if (error){ toast('Erro: ' + error.message, true); return; }
+  Object.assign(settings, data);
+  applySettings();
+  toast('Configurações salvas ✓');
+});
+
+/* ==================== NAVEGAÇÃO ==================== */
+$('#detailClose').addEventListener('click', closeDetail);
+$('#sortSelect').addEventListener('change', e => { sortMode = e.target.value; render(); });
+
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape') return;
+  if (!$('#editorModal').hidden){ closeEditor(); return; }
+  if ($('#detailOverlay').classList.contains('open')){ closeDetail(); return; }
+  if (adminOverlay.classList.contains('open')){ closeAdmin(); }
+});
+
+/* ==================== INIT ==================== */
+(async function init(){
+  try {
+    await initAuth();
+    await loadData();
+    render();
+    subscribeRealtime();
+  } catch (err){
+    console.error(err);
+    $('#chapterList').innerHTML = '<div class="empty-state">Erro ao carregar. Verifique a configuração e recarregue.</div>';
+  }
+})();
+
+})();
+</script>
+</body>
+</html>
